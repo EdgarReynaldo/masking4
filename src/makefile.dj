@@ -1,0 +1,113 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG library for DJGPP and Allegro
+
+
+CC = gpp
+
+CFLAGS = \
+	-O2\
+	-march=pentium\
+	-fomit-frame-pointer\
+	-finline-functions\
+	-ffast-math\
+	-funroll-loops\
+	-s
+
+OBJDIR = ../obj/djgpp
+LIBDIR = ../lib/djgpp
+LIB = $(LIBDIR)/libmasking.a
+
+# -------- check shell --------
+
+ifdef CROSSCOMPILE
+  UNIX_TOOLS = 1
+endif
+
+ifeq ($(findstring /sh.exe, $(SHELL)), /sh.exe)
+  UNIX_TOOLS = 1
+endif
+
+# -------- rules for build the library files --------
+
+include filelist
+
+OBJ = $(addprefix $(OBJDIR)/, $(notdir $(SRC:.cpp=.o)))
+
+all : $(OBJ) $(LIB)
+	@echo -
+	@echo "MASkinG is now compiled. Type make install to finish the instalation"
+	@echo "procedure. Optionally you can go to the examples folder and type make"
+	@echo "to build the examples."
+
+$(OBJDIR)/%.o: %.cpp
+	-$(CC) $(CFLAGS) -o $@ -c $<
+
+$(LIB): $(OBJ)
+	-ar src $(LIB) $(OBJ)
+
+# -------- rules for installing and removing the library files --------
+
+ifdef UNIX_TOOLS
+
+# -------- use bash --------
+
+install:
+	-mkdir -p $(DJDIR)/include/MASkinG
+	-cp -f ../include/MASkinG.h $(DJDIR)/include
+	-cp -f ../include/MASkinG/*.* $(DJDIR)/include/MASkinG
+	-cp -f $(LIB) $(DJDIR)/lib
+	@echo -
+	@echo MASkinG is now installed.
+
+clean:
+	-rm -f $(OBJ)
+	-rm -f $(LIB)
+
+else
+
+# -------- use command or cmd (for NT branches) --------
+
+ifneq (,$(findstring NT,$(OS)))
+  COMMAND_PROCESSOR = cmd
+else
+  COMMAND_PROCESSOR = command
+endif
+
+DJDIR_D = $(subst /,\,$(DJDIR))
+OBJDIR_D = $(subst /,\,$(OBJDIR))
+LIB_D = $(subst /,\,$(LIB))
+
+install:
+	-$(COMMAND_PROCESSOR) /c "mkdir $(DJDIR_D)\include\MASkinG"
+	-$(COMMAND_PROCESSOR) /c "copy /y ..\include\MASkinG.h $(DJDIR_D)\include"
+	-$(COMMAND_PROCESSOR) /c "copy /y ..\include\MASkinG\*.* $(DJDIR_D)\include\MASkinG"
+	-$(COMMAND_PROCESSOR) /c "copy /y $(LIB_D) $(DJDIR_D)\lib"
+	@echo -
+	@echo MASkinG is now installed.
+
+clean:
+	-$(COMMAND_PROCESSOR) /c "del /q $(OBJDIR_D)\*.*"
+	-$(COMMAND_PROCESSOR) /c "del /q $(LIB_D)"
+
+endif
+
+
+# -------- dependencies --------
+
+-include $(OBJDIR)/makefile.dep
+
+DEPEND_PARAMS = -MM -MG -I. -I../include -DSCAN_DEPEND -DALLEGRO_DJGPP
+
+depend:
+	$(CC) $(DEPEND_PARAMS) *.cpp > _depend.tmp
+	sed -e "s/^[a-zA-Z0-9_\/]*\///" _depend.tmp > _depend2.tmp
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/djgpp\/\1\.o:/" _depend2.tmp > ../obj/djgpp/makefile.dep
+ifdef UNIX_TOOLS
+	rm _depend.tmp _depend2.tmp
+else
+	del _depend.tmp
+	del _depend2.tmp
+endif
+
+
+# -------- end --------

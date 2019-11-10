@@ -1,0 +1,174 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG library for MINGW and Allegro
+
+# uncomment one of the options
+ifdef MASKING_DLL
+	TARGET=MINGW32_DLL
+else
+	TARGET=MINGW32_STATIC
+endif
+
+CC = g++
+
+# MINGW32_STATIC
+ifeq ($(TARGET),MINGW32_STATIC)
+ifdef STATICLINK
+ifdef ALLEGRO_GL
+	OBJDIR=../obj/mingw/allstatic_gl
+	LIBDEST=../lib/mingw/libmaskinggl_s.a
+	CFLAGS=-mwindows -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API -DMASKING_GL -DALLEGRO_STATICLINK
+else
+	OBJDIR=../obj/mingw/allstatic
+	LIBDEST=../lib/mingw/libmasking_s.a
+	CFLAGS=-mwindows -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API -DALLEGRO_STATICLINK
+endif
+else
+ifdef ALLEGRO_GL
+	OBJDIR=../obj/mingw/static_gl
+	LIBDEST=../lib/mingw/libmaskinggl.a
+	CFLAGS=-mwindows -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API -DMASKING_GL
+else
+	OBJDIR=../obj/mingw/static
+	LIBDEST=../lib/mingw/libmasking.a
+	CFLAGS=-mwindows -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API
+endif
+endif
+endif
+
+
+# MINGW32_DLL - unfinished
+ifeq ($(TARGET),MINGW32_DLL)
+ifdef ALLEGRO_GL
+	OBJDIR=../obj/mingw/dll_gl
+	LIBIMP=../lib/mingw/libmaskinggldll.a
+	LIBDEST=../lib/mingw/maskinggl.dll
+	CFLAGS=-mwindows -shared -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API -DMASKING_GL -DMASKING_DLL -DBUILD_DLL
+else
+	OBJDIR=../obj/mingw/dll
+	LIBIMP=../lib/mingw/libmaskingdll.a
+	LIBDEST=../lib/mingw/masking.dll
+	CFLAGS=-mwindows -shared -O2 -march=pentium -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -D__GTHREAD_HIDE_WIN32API -DMASKING_DLL -DBUILD_DLL
+endif
+endif
+
+# -------- check shell --------
+
+
+ifdef CROSSCOMPILE
+  UNIX_TOOLS = 1
+endif
+
+ifeq ($(findstring /sh.exe, $(SHELL)), /sh.exe)
+  UNIX_TOOLS = 1
+endif
+
+
+# -------- rules for build the library files --------
+
+
+include filelist
+OBJ = $(addprefix $(OBJDIR)/, $(notdir $(SRC:.cpp=.o)))
+
+all : $(OBJ) $(LIBDEST)
+	@echo -
+	@echo "MASkinG is now compiled. Type make install to finish the instalation"
+	@echo "procedure. Optionally you can go to the examples folder and type make"
+	@echo "to build the examples. Don't forget to pass the same options to make"
+	@echo "you did when building the core library."
+
+$(OBJDIR)/%.o: %.cpp
+	-$(CC) $(CFLAGS) -o $@ -c $<
+
+# MINGW32_DLL
+ifeq ($(TARGET),MINGW32_DLL)
+$(LIBDEST): $(OBJ)
+	$(CC) -o $@ $(OBJ) $(CFLAGS) -lalfontdll -lalleg -Wl,--out-implib,$(LIBIMP) -Wl,--enable-auto-import -Wl,--enable-runtime-pseudo-reloc
+
+
+# others
+else
+$(LIBDEST): $(OBJ)
+	ar rs $(LIBDEST) $(OBJ)
+endif
+
+
+# -------- rules for installing and removing the library files --------
+
+MINGDIR_D = $(subst /,\,$(MINGDIR))
+OBJDIR_D = $(subst /,\,$(OBJDIR))
+LIBIMP_D = $(subst /,\,$(LIBIMP))
+LIBDEST_D = $(subst /,\,$(LIBDEST))
+
+install:
+ifdef UNIX_TOOLS
+	- mkdir -p $(MINGDIR)/include/MASkinG
+	- cp -f ../include/MASkinG.h $(MINGDIR)/include
+	- cp -f ../include/MASkinG/*.* $(MINGDIR)/include/MASkinG
+ifeq ($(TARGET),MINGW32_DLL)
+	- cp -f $(LIBIMP) $(MINGDIR)/lib
+else
+	- cp -f $(LIBDEST) $(MINGDIR)/lib
+endif
+else
+	- mkdir $(MINGDIR_D)\include\MASkinG
+	- copy /y ..\include\MASkinG.h $(MINGDIR_D)\include
+	- copy /y ..\include\MASkinG\*.* $(MINGDIR_D)\include\MASkinG
+ifeq ($(TARGET),MINGW32_DLL)
+	- copy /y $(LIBIMP_D) $(MINGDIR_D)\lib
+else
+	- copy /y $(LIBDEST_D) $(MINGDIR_D)\lib
+endif
+endif
+	@echo -
+	@echo MASkinG is now installed.
+
+
+# -------- cleaning --------
+
+
+clean:
+ifdef UNIX_TOOLS
+	- rm -f $(OBJ)
+ifeq ($(TARGET),MINGW32_DLL)
+	- rm -f $(LIBIMP)
+else
+	- rm -f $(LIBDEST)
+endif
+else
+	- del /q $(OBJDIR_D)\*.o
+ifeq ($(TARGET),MINGW32_DLL)
+	- del /q $(LIBIMP_D)
+else
+	- del /q $(LIBDEST_D)
+endif
+endif
+
+
+# -------- dependencies --------
+
+-include $(OBJDIR)/makefile.dep
+
+DEPEND_PARAMS = -MM -MG -I. -I../include -DSCAN_DEPEND -DALLEGRO_MINGW32
+
+depend:
+	$(CC) $(DEPEND_PARAMS) *.cpp > _depend.tmp
+	sed -e "s/^[a-zA-Z0-9_\/]*\///" _depend.tmp > _depend2.tmp
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/static\/\1\.o:/" _depend2.tmp > ../obj/mingw/static/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/static_gl\/\1\.o:/" _depend2.tmp > ../obj/mingw/static_gl/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/allstatic\/\1\.o:/" _depend2.tmp > ../obj/mingw/allstatic/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/allstatic_gl\/\1\.o:/" _depend2.tmp > ../obj/mingw/allstatic_gl/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/dll\/\1\.o:/" _depend2.tmp > ../obj/mingw/dll/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/mingw\/dll_gl\/\1\.o:/" _depend2.tmp > ../obj/mingw/dll_gl/makefile.dep
+ifdef UNIX_TOOLS
+	rm _depend.tmp _depend2.tmp
+else
+	del _depend.tmp
+	del _depend2.tmp
+endif
+
+# -------- docs --------
+
+docs:
+	docxx -i -j -G -H -B ../docs/html/footer.html -d ../docs/html ../include/MASkinG/*.h ../include/MASkinG.h
+
+# -------- end --------

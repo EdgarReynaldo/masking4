@@ -1,0 +1,81 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG library for Allegro under Linux
+
+CC = g++
+
+# LINUX_STATIC
+ifdef STATICLINK
+ifdef ALLEGRO_GL
+	OBJDIR=../obj/linux/allstatic_gl
+	LIBDEST=../lib/linux/libmaskinggl_s.a
+	CFLAGS=-O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -DMASKING_GL -DALLEGRO_STATICLINK
+else
+	OBJDIR=../obj/linux/allstatic
+	LIBDEST=../lib/linux/libmasking_s.a
+	CFLAGS=-O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -DALLEGRO_STATICLINK
+endif
+else
+ifdef ALLEGRO_GL
+	OBJDIR=../obj/linux/static_gl
+	LIBDEST=../lib/linux/libmaskinggl.a
+	CFLAGS=-O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s -DMASKING_GL
+else
+	OBJDIR=../obj/linux/static
+	LIBDEST=../lib/linux/libmasking.a
+	CFLAGS=-O2 -fomit-frame-pointer -finline-functions -ffast-math -funroll-loops -s
+endif
+endif
+
+
+include filelist
+OBJ = $(addprefix $(OBJDIR)/, $(notdir $(SRC:.cpp=.o)))
+
+all : $(OBJ) $(LIBDEST)
+	@echo -
+	@echo "MASkinG is now compiled. Type make install to finish the instalation"
+	@echo "procedure. Optionally you can go to the examples folder and type make"
+	@echo "to build the examples. Don't forget to pass the same options to make"
+	@echo "you did when building the core library."
+
+
+$(OBJDIR)/%.o: %.cpp
+	-$(CC) $(CFLAGS) -o $@ -c $<
+
+$(LIBDEST): $(OBJ)
+	- ar src $(LIBDEST) $(OBJ)
+
+# -------- install --------
+
+install:
+	- mkdir -p /usr/local/include/MASkinG
+	- cp -f ../include/MASkinG/*.* /usr/local/include/MASkinG
+	- cp -f ../include/MASkinG.h /usr/local/include
+	- cp -f $(LIBDEST) /usr/local/lib
+	@echo -
+	@echo MASkinG is now installed.
+
+# -------- clean --------
+
+clean:
+	- rm -f $(OBJ)
+	- rm -f $(LIBDEST)
+
+# -------- dependencies --------
+
+-include $(OBJDIR)/makefile.dep
+
+DEPEND_PARAMS = -MM -MG -I. -I../include -DSCAN_DEPEND -DALLEGRO_UNIX
+
+depend:
+	$(CC) $(DEPEND_PARAMS) *.cpp > _depend.tmp
+	sed -e "s/^[a-zA-Z0-9_\/]*\///" _depend.tmp > _depend2.tmp
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/linux\/static\/\1\.o:/" _depend2.tmp > ../obj/linux/static/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/linux\/static_gl\/\1\.o:/" _depend2.tmp > ../obj/linux/static_gl/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/linux\/allstatic\/\1\.o:/" _depend2.tmp > ../obj/linux/allstatic/makefile.dep
+	sed -e "s/^\([a-zA-Z0-9_]*\)\.o:/\.\.\/obj\/linux\/allstatic_gl\/\1\.o:/" _depend2.tmp > ../obj/linux/allstatic_gl/makefile.dep
+	rm _depend.tmp _depend2.tmp
+
+# -------- docs --------
+
+docs:
+	doc++ -i -j -G -H -B ../docs/html/footer.html -d ../docs/html ../include/MASkinG/*.h ../include/MASkinG.h

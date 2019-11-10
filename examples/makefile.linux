@@ -1,0 +1,48 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG examples with Allegro in Linux
+
+
+CC = g++
+
+CFLAGS = \
+	-O2\
+	-fomit-frame-pointer\
+	-ffast-math\
+	-funroll-loops\
+	-finline-functions\
+	-s
+
+LIBDIR = ../lib/linux
+CFLAGS2 =
+
+ifdef STATICLINK
+ifdef ALLEGRO_GL
+	LIB = $(LIBDIR)/libmaskinggl_s.a -lagl_s -lalfont_s `allegro-config --static` -lGL -lGLU
+	CFLAGS2 = -DMASKING_GL -DALLEGRO_STATICLINK
+else
+	LIB = $(LIBDIR)/libmasking_s.a -lalfont_s `allegro-config --static`
+	CFLAGS2 = -DALLEGRO_STATICLINK
+endif
+else
+ifdef ALLEGRO_GL
+	LIB = $(LIBDIR)/libmaskinggl.a -lagl -lalfont `allegro-config --libs` -lGL -lGLU
+	CFLAGS2 = -DMASKING_GL
+else
+	LIB = $(LIBDIR)/libmasking.a -lalfont `allegro-config --libs`
+endif
+endif
+
+
+include filelist
+EXEDIR = .
+EXE = $(addprefix $(EXEDIR)/, $(notdir $(SRC:.cpp=.exe)))
+
+all : $(EXE)
+	@echo -
+	@echo "Examples are now compiled."
+
+%.exe: %.cpp
+	-$(CC) $(CFLAGS) $(CFLAGS2) -o $@ $< $(LIB)
+
+clean:
+	-rm -f $(EXE)

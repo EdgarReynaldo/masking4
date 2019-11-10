@@ -1,0 +1,22 @@
+SRC = \
+	ex01.cpp\
+	ex02.cpp\
+	ex03.cpp\
+	ex04.cpp\
+	ex05.cpp\
+	ex06.cpp\
+	ex07.cpp\
+	ex08.cpp\
+	ex09.cpp\
+	ex10.cpp\
+	ex11.cpp\
+	ex12.cpp\
+	ex13.cpp\
+	ex14.cpp\
+	ex15.cpp\
+	ex16.cpp\
+	ex17.cpp\
+	ex18.cpp\
+	ex19.cpp\
+	ex20.cpp\
+	ex21.cpp

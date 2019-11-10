@@ -1,0 +1,32 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG examples with DJGPP and Allegro
+
+
+CC = gpp
+
+CFLAGS = \
+	-O2\
+	-march=pentium\
+	-fomit-frame-pointer\
+	-ffast-math\
+	-funroll-loops\
+	-finline-functions\
+	-s\
+	-W
+
+LIBDIR = ../lib/djgpp
+LIB = $(LIBDIR)/libmasking.a -lalfont -lalleg
+
+include filelist
+EXEDIR = .
+EXE = $(addprefix $(EXEDIR)/, $(notdir $(SRC:.cpp=.exe)))
+
+all : $(EXE)
+	@echo -
+	@echo "Examples are now compiled."
+
+%.exe: %.cpp
+	-$(CC) $(CFLAGS) -o $@ $< $(LIB)
+
+clean:
+	-rm -f $(EXE)

@@ -1,0 +1,72 @@
+#------------------------------------------------------------------------------
+# This file builds the MASkinG examples with MINGW and Allegro
+
+# uncomment one of the options
+ifdef MASKING_DLL
+	TARGET=MINGW32_DLL
+else
+	TARGET=MINGW32_STATIC
+endif
+
+CC = g++
+
+CFLAGS = \
+	-O2\
+	-march=pentium\
+	-fomit-frame-pointer\
+	-ffast-math\
+	-funroll-loops\
+	-finline-functions\
+	-s\
+	-D__GTHREAD_HIDE_WIN32API\
+	-mwindows
+
+
+LIBDIR = ../lib/mingw
+
+
+ifeq ($(TARGET),MINGW32_STATIC)
+ifdef STATICLINK
+ifdef ALLEGRO_GL
+	LIB = $(LIBDIR)/libmaskinggl_s.a -lagl_s -lglu32 -lopengl32 -lalfont_s -lalleg_s -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lole32 -ldinput -lddraw -ldxguid -lwinmm -ldsound
+	CFLAGS2 = -DMASKING_GL -DALLEGRO_STATICLINK
+else
+	LIB = $(LIBDIR)/libmasking_s.a -lalfont_s -lalleg_s -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lole32 -ldinput -lddraw -ldxguid -lwinmm -ldsound
+	CFLAGS2 = -DALLEGRO_STATICLINK
+endif
+else
+ifdef ALLEGRO_GL
+	LIB = $(LIBDIR)/libmaskinggl.a -lagl -lglu32 -lopengl32 -lalfont -lalleg -luser32 -lgdi32
+	CFLAGS2 = -DMASKING_GL
+else
+	LIB = $(LIBDIR)/libmasking.a -lalfont -lalleg
+endif
+endif
+else
+ifdef ALLEGRO_GL
+	LIB = $(LIBDIR)/libmaskingdll.a -lagl -lglu32 -lopengl32 -lalfontdll -lalleg -luser32 -lgdi32
+	CFLAGS2 = -DMASKING_GL -DMASKING_DLL
+else
+	LIB = $(LIBDIR)/libmaskingdll.a -lalfontdll -lalleg
+	CFLAGS2 = -DMASKING_DLL
+endif
+endif
+
+
+include filelist
+EXEDIR = .
+EXE = $(addprefix $(EXEDIR)/, $(notdir $(SRC:.cpp=.exe)))
+
+all : $(EXE)
+	@echo -
+	@echo "Examples are now compiled."
+
+%.exe: %.cpp
+	-$(CC) $(CFLAGS) $(CFLAGS2) -o $@ $< $(LIB)
+
+clean:
+ifdef UNIX_TOOLS
+	- rm -f $(EXE)
+else
+	- del /q *.exe
+endif
